@@ -6,12 +6,10 @@ ARG PHP_VERSION=7.3
 # Set the base image to Ubuntu
 FROM ubuntu:${UBUNTU_VERSION}
 
-# Install Nginx
-
 # Add application repository URL to the default sources
-RUN echo "deb http://archive.ubuntu.com/ubuntu xenial-updates main restricted" >> /etc/apt/sources.list
+RUN echo "deb http://archive.ubuntu.com/ubuntu/ xenial main universe" >> /etc/apt/sources.list
 
-## Update the repository & upgrade
+# Update the repository & upgrade
 RUN apt-get update && apt-get upgrade -y
 
 # Install locale for Gettext
@@ -24,9 +22,23 @@ ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
 
-RUN apt-get install -q -y software-properties-common wget curl bzip2 git less mysql-client sudo unzip zip libbz2-dev libfontconfig1 libfontconfig1-dev libfreetype6-dev libpng12-dev libzip-dev
+RUN apt-get install -y software-properties-common
 
-RUN apt-get update && apt-get upgrade -y
+#
+# Install dependencies
+RUN apt-get install -y curl
+RUN apt-get install -y bzip2
+RUN apt-get install -y git
+RUN apt-get install -y less
+RUN apt-get install -y mysql-client
+RUN apt-get install -y sudo unzip zip
+RUN apt-get install -y libbz2-dev
+RUN apt-get install -y libfontconfig1
+RUN apt-get install -y libfontconfig1-dev
+RUN apt-get install -y libfreetype6-dev
+RUN apt-get install -y libjpeg-turbo8
+RUN apt-get install -y libpng12-dev
+RUN apt-get install -y libzip-dev
 
 # Download and Install Nginx
 RUN apt-get install -y nginx
@@ -43,8 +55,25 @@ RUN echo "daemon off;" >> /etc/nginx/ph7cms.conf
 # Install PHP!
 FROM php:${PHP_VERSION}-fpm
 
-RUN docker-php-ext-install bz2
+RUN apt-get update && apt-get install -y libbz2-dev
 
+
+RUN docker-php-ext-install bz2
+RUN apt-get update && apt-get install -y \
+        libfreetype6-dev \
+        libjpeg62-turbo-dev \
+        libpng-dev \
+    && docker-php-ext-install -j$(nproc) iconv \
+    && docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
+    && docker-php-ext-install -j$(nproc) gd
+
+RUN docker-php-ext-install iconv
+RUN docker-php-ext-install opcache
+RUN docker-php-ext-install pdo
+RUN docker-php-ext-install pdo_mysql
+
+RUN apt-get install -y libzip-dev
+RUN docker-php-ext-install zip
 
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php \
